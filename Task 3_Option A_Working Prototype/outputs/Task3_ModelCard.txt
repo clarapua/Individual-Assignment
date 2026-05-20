@@ -1,0 +1,72 @@
+
+================================================================================
+MODEL CARD — Jurisdiction-Aware AML/KYC Transaction Monitoring Tool
+Version : 1.0 (Prototype) | MH6822 Assignment 1
+Entity  : Julius Baer | Jurisdictions: US (FinCEN/BSA) vs SG (MAS Notice 626)
+================================================================================
+
+WHAT THIS TOOL DOES
+-------------------
+Scores private banking transactions for AML/KYC risk using two layers:
+(1) Rule-based engine applying jurisdiction-specific regulatory parameters
+    (US FinCEN/BSA vs SG MAS Notice 626)
+(2) Isolation Forest anomaly detection for statistical outliers not captured
+    by existing rules (e.g. early fund redemption at a loss — Scenario S5)
+Outputs: combined risk score (0-100), alert tier (RED/AMBER/GREEN), and
+jurisdiction-specific compliance narrative.
+
+WHAT THIS TOOL DOES NOT DO
+--------------------------
+- Does NOT replace analyst judgement. RED/AMBER alerts require human review.
+- Does NOT make SAR/STR filing decisions. This is a triage tool.
+- Does NOT cover FINMA (Switzerland), HKMA (Hong Kong), or EU AMLD6.
+- Does NOT perform real-time screening against live sanctions lists (OFAC, UN).
+- Does NOT handle trade-based money laundering typologies.
+- NOT production-ready. Prototype only.
+
+WHY WE INCLUDED INTER-ENTITY TRANSFER RULE (GENUINE RISK, NOT DOCUMENTATION)
+-----------------------------------------------------------------------------
+Rule 6 (inter-entity transfer flag) is not required by FinCEN or MAS Notice 626.
+We included it because layering through BVI holdcos and family trusts is the
+primary AML typology for HNWI clients at private banks — and it is invisible
+to tools that screen transactions in isolation. This is a design choice that
+improves genuine risk detection even though no regulator mandates it.
+
+KNOWN FAILURE MODES
+-------------------
+1. MODEL DRIFT: Isolation Forest trained on synthetic data. Production requires
+   retraining on actual transaction history. Performance degrades as client
+   behaviour patterns evolve — requires periodic revalidation.
+2. RULE STALENESS: Regulatory parameters change. JURISDICTION_CONFIG must be
+   reviewed at minimum annually and updated when MAS/FinCEN amend guidance.
+   Without governance process, tool applies outdated rules silently.
+3. DUAL-JURISDICTION TRANSACTIONS: Tool requires manual selection of active
+   jurisdiction. A US-booked client with a SG counterparty is not automated.
+4. FALSE POSITIVES: HNWI clients legitimately transact in large round-number
+   amounts. Inter-entity transfers within family structures are often legitimate.
+   Cost: relationship damage, client complaints, analyst overload.
+5. FALSE NEGATIVES: Novel typologies not in training data or rule set are missed.
+   Cost: regulatory sanction, reputational damage, potential licence revocation.
+
+WHO BEARS THE COST OF ERRORS
+-----------------------------
+False Positive  → HNWI client (scrutiny, exit risk); RM (relationship damage)
+False Negative  → Regulator (FinCEN/MAS action); Julius Baer (fine, licence risk)
+Config Error    → Compliance team (regulatory liability for wrong jurisdiction logic)
+Model Drift     → All stakeholders
+
+HUMAN OVERSIGHT REQUIREMENTS
+-----------------------------
+RED alerts   : MLRO review + sign-off before SAR/STR filing
+AMBER alerts : Analyst review + documented rationale for file/no-file decision
+GREEN alerts : Automated pass; 10% sampled QA review
+
+WHAT WOULD BE ADDED WITH MORE TIME / DATA
+-----------------------------------------
+- Real transaction data integration (core banking system API)
+- Live sanctions list screening (OFAC SDN, UN Consolidated List)
+- HKMA and FINMA jurisdiction configs
+- Network graph analysis for entity relationship mapping
+- Automated STR/SAR narrative generation for MLRO review
+- Regulatory change monitoring with auto-config update prompts
+================================================================================
